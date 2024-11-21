@@ -1,11 +1,19 @@
+## require:
+## pip install wikipedia-api
+## pip install dash
+
 import pandas as pd
 import plotly.express as px
 from dash import Dash, html, dcc
 import certifi
 import ssl
 import urllib.request
+import panel as pn
+import panel.widgets as pnw
 import wikipediaapi
 from dash.dependencies import Input, Output, State
+import dash
+from dash import dash_table
 
 url = 'https://raw.githubusercontent.com/fivethirtyeight/data/refs/heads/master/congress-demographics/data_aging_congress.csv'
 
@@ -15,12 +23,12 @@ context = ssl.create_default_context(cafile=certifi.where())
 # Use urllib to open the URL
 with urllib.request.urlopen(url, context=context) as response:
     congress = pd.read_csv(response)
-    print(congress.head(3))  # make sure data was loaded properly
+    #print(congress.head(3))  # make sure data was loaded properly
 
 # Initialize Wikipedia API with a user agent
 user_agent = "MyApp/1.0 (https://myappwebsite.example)"
 wiki = wikipediaapi.Wikipedia('en', headers={'User-Agent': user_agent})
-
+list_default = ['Default']
 
 # Helper functions for dropdowns and slider
 def create_dropdown_options(series):
@@ -40,23 +48,35 @@ def create_slider_marks(values):
 
 # CHOROPLETH GRAPH
 data_c = congress.groupby(by=['state_abbrev', 'congress'])[
-    'age_years'].mean(
-
-).reset_index()
+    'age_years'].mean().reset_index()
 data_c.rename(columns={'age_years': 'average_age'}, inplace=True)
 data_c.sort_values(by='congress', inplace=True)
+## add more info to Geo map
+# dataset: get number of house by different year
+temp=congress[congress['chamber'] == 'House'].groupby(by=['state_abbrev', 'congress'])['age_years'].size().reset_index()
+temp.rename(columns={'age_years': 'number_of_house'}, inplace=True)
+# dataset: get number of senate by different year
+temp1=congress[congress['chamber'] == 'Senate'].groupby(by=['state_abbrev', 'congress'])['age_years'].size().reset_index()
+temp1.rename(columns={'age_years': 'number_of_senate'}, inplace=True)
+# merge them then merge to main Geo dataset
+temp = temp.merge(temp1, left_on=['state_abbrev', 'congress'], right_on=['state_abbrev', 'congress'])
+data_c = data_c.merge(temp, left_on=['state_abbrev', 'congress'], right_on=['state_abbrev', 'congress'])
+
+
 choropleth = px.choropleth(data_c,
                            locations='state_abbrev',
-                           locationmode='USA-states',
-                           # Map mode set to US states
+                           locationmode='USA-states', # Map mode set to US states
                            color='average_age',
                            color_continuous_scale='Reds',
                            scope='usa',
                            range_color=(50, 62),
                            hover_name='state_abbrev',
+                           hover_data={'number_of_house': True, 'number_of_senate': True},
                            labels={'state_abbrev': 'State Abbreviations',
-                                   'average_age': 'Average Age of Congress Members',
-                                   'congress': 'Number of the Congress'},
+                              'average_age': 'Average Age of Congress Members',
+                              'congress': 'Number of the Congress',
+                              'number_of_house': 'Number of House',
+                              'number_of_senate': 'Number of Senate'},
                            title='Average Age of Congress Members by State',
                            animation_frame='congress'
                            )
@@ -172,8 +192,37 @@ app.layout = html.Div([
             dcc.Graph(id="stacked-bar", figure=stacked_bar),
             html.Div([
                 dcc.Graph(id="choropleth", figure=choropleth)
-            ]),
-        ])
+            ], style={'padding': '20px'}),
+        ]),
+        # try to add another section for table
+        html.Div([
+            html.H2('Filter options'),
+            html.Div([
+                html.Label('Congress:'),
+                dcc.Dropdown(id='select-congress', options=[{'label': val, 'value': val} for val in list_default + congress['congress'].unique().tolist()], value='Default'),
+                html.Label('Chamber:'),
+                dcc.Dropdown(id='select-chamber', options=[{'label': val, 'value': val} for val in list_default + congress['chamber'].unique().tolist()], value='Default'),
+                html.Label('State:'),
+                dcc.Dropdown(id='select-state', options=[{'label': val, 'value': val} for val in list_default + congress['state_abbrev'].unique().tolist()], value='Default'),
+                html.Label('Party Code:'),
+                dcc.Dropdown(id='select-party', options=[{'label': val, 'value': val} for val in list_default + congress['party_code'].unique().tolist()], value='Default'),
+                html.Label('Age Range:'),
+                dcc.RangeSlider(id='age-slider', min=20, max=100, value=[20, 100], marks={i: str(i) for i in range(20, 101, 10)})
+            ], style={'width': '25%', 'display': 'inline-block', 'verticalAlign': 'top'}),
+            html.Div([
+                html.H2('Data After Filter'),
+                dash_table.DataTable(id='filtered-table', 
+                                     columns=[{"name": i, "id": i} for i in congress.columns],
+                                     page_size=10,
+                                     row_selectable='single')
+            ], style={'width': '70%', 'display': 'inline-block'}),
+            html.Div([
+                html.H3('Selected Bioname:'),
+                html.Div(id='selected-bioname'),
+                html.Button('Search Wikipedia', id='search-wikipedia', n_clicks=0)
+            ], style={'padding-top': '20px'}),
+            html.Div(id='wikipedia-summary-table')
+        ], style={'padding-bottom': '100px'})
     ], style={'width': '75%', 'display': 'inline-block',
               'padding-left': '20px'})
 ], id='container')
@@ -198,6 +247,74 @@ def search_wikipedia(n_clicks, name):
     else:
         summary = "Enter a name to see the Wikipedia summary here."
     return f"### Wikipedia Summary:\n{summary}"
+
+#### try to add another section for table 
+@app.callback(
+    Output('filtered-table', 'data'),
+    Input('select-congress', 'value'),
+    Input('select-chamber', 'value'),
+    Input('select-state', 'value'),
+    Input('select-party', 'value'),
+    Input('age-slider', 'value')
+)
+
+def update_filtered_data(arg_congress, arg_chamber, arg_state, arg_party, arg_age):
+    res = congress.copy()
+    if arg_congress != 'Default':
+        res = res[res['congress'] == arg_congress]
+    if arg_chamber != 'Default':
+        res = res[res['chamber'] == arg_chamber]
+    if arg_state != 'Default':
+        res = res[res['state_abbrev'] == arg_state]
+    if arg_party != 'Default':
+        res = res[res['party_code'] == arg_party]
+    res = res[(res['age_years'] >= arg_age[0]) & (res['age_years'] <= arg_age[1])]
+    return res.to_dict('records')
+
+@app.callback(
+    Output('selected-bioname', 'children'),
+    Input('filtered-table', 'selected_rows'),
+    State('filtered-table', 'data')
+)
+def update_selected_bioname(selected_rows, table_data):
+    if selected_rows is not None and len(selected_rows) > 0:
+        selected_row_idx = selected_rows[0]
+        selected_name = table_data[selected_row_idx]['bioname']
+        return f'Selected Bioname: {selected_name}'
+    return 'Click a row to display bioname here.'
+
+@app.callback(
+    Output('wikipedia-summary-table', 'children'),
+    Input('search-wikipedia', 'n_clicks'),
+    State('selected-bioname', 'children')
+)
+
+# wiki documentation https://pypi.org/project/Wikipedia-API/?form=MG0AV3    
+def search_wikipedia(n_clicks, selected_name):
+    if n_clicks > 0 and selected_name:
+        user_agent = "MyApp/1.0 (https://myappwebsite.example)"
+        wiki = wikipediaapi.Wikipedia('en', headers={'User-Agent': user_agent})
+        
+        # Extract the name without "Selected Bioname:"
+        name = selected_name.replace('Selected Bioname: ', '').strip()
+        parts = name.split(', ')
+        parts = parts[::-1]
+        parts[1] = parts[1].capitalize()
+        name = " ".join(parts)
+        res = ['### Wikipedia Summary:', 'name']
+        
+        if name:
+            page = wiki.page(name)
+            if page.exists():
+                res.append(page.summary[:500])
+                link = f"[Read more on Wikipedia](https://en.wikipedia.org/wiki/{name.replace(' ', '_')})"
+                return f'{res[0]}\n\n{res[1]}\n\n{res[2]}\n\n{link}'
+            else:
+                return f'{res[0]}\n\n{res[1]}\n\nNo page found for this name.'
+    return ''
+
+
+
 
 
 if __name__ == '__main__':
