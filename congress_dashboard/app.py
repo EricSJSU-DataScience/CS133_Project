@@ -209,20 +209,22 @@ app.layout = html.Div([
                 html.Label('Age Range:'),
                 dcc.RangeSlider(id='age-slider', min=20, max=100, value=[20, 100], marks={i: str(i) for i in range(20, 101, 10)})
             ], style={'width': '25%', 'display': 'inline-block', 'verticalAlign': 'top'}),
+        ]),
+        html.Div([
             html.Div([
-                html.H2('Data After Filter'),
-                dash_table.DataTable(id='filtered-table', 
-                                     columns=[{"name": i, "id": i} for i in congress.columns],
-                                     page_size=10,
-                                     row_selectable='single')
-            ], style={'width': '70%', 'display': 'inline-block'}),
-            html.Div([
-                html.H3('Selected Bioname:'),
-                html.Div(id='selected-bioname'),
-                html.Button('Search Wikipedia', id='search-wikipedia', n_clicks=0)
-            ], style={'padding-top': '20px'}),
-            html.Div(id='wikipedia-summary-table')
-        ], style={'padding-bottom': '100px'})
+                    html.H2('Data After Filter'),
+                    dash_table.DataTable(id='filtered-table', 
+                                         columns=[{"name": i, "id": i} for i in congress.columns],
+                                         page_size=10,
+                                         row_selectable='single')
+                ], style={'width': '70%', 'display': 'inline-block'}),
+                html.Div([
+                    html.H3('Selected Bioname:'),
+                    html.Div(id='selected-bioname'),
+                    html.Button('Search Wikipedia', id='search-wikipedia', n_clicks=0)
+                ], style={'padding-top': '20px', 'backgroundColor': '#e0e0e0'}),
+                html.Div(id='wikipedia-summary-table', style={'padding-top': '20px', 'backgroundColor': '#e0e0e0'})
+        ], style={'padding-bottom': '200px'})
     ], style={'width': '75%', 'display': 'inline-block',
               'padding-left': '20px'})
 ], id='container')
@@ -291,6 +293,8 @@ def update_selected_bioname(selected_rows, table_data):
 
 # wiki documentation https://pypi.org/project/Wikipedia-API/?form=MG0AV3    
 def search_wikipedia(n_clicks, selected_name):
+    if selected_name == 'Click a row to display bioname here.':
+        return 'Please select who you want to know.'
     if n_clicks > 0 and selected_name:
         user_agent = "MyApp/1.0 (https://myappwebsite.example)"
         wiki = wikipediaapi.Wikipedia('en', headers={'User-Agent': user_agent})
