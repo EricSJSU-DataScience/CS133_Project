@@ -199,13 +199,13 @@ app.layout = html.Div([
             html.H2('Filter options'),
             html.Div([
                 html.Label('Congress:'),
-                dcc.Dropdown(id='select-congress', options=[{'label': val, 'value': val} for val in list_default + congress['congress'].unique().tolist()], value='Default'),
+                dcc.Dropdown(id='select-congress', options=[{'label': val, 'value': val} for val in list_default + sorted(congress['congress'].unique().tolist())], value='Default'),
                 html.Label('Chamber:'),
-                dcc.Dropdown(id='select-chamber', options=[{'label': val, 'value': val} for val in list_default + congress['chamber'].unique().tolist()], value='Default'),
+                dcc.Dropdown(id='select-chamber', options=[{'label': val, 'value': val} for val in list_default + sorted(congress['chamber'].unique().tolist())], value='Default'),
                 html.Label('State:'),
-                dcc.Dropdown(id='select-state', options=[{'label': val, 'value': val} for val in list_default + congress['state_abbrev'].unique().tolist()], value='Default'),
+                dcc.Dropdown(id='select-state', options=[{'label': val, 'value': val} for val in list_default + sorted(congress['state_abbrev'].unique().tolist())], value='Default'),
                 html.Label('Party Code:'),
-                dcc.Dropdown(id='select-party', options=[{'label': val, 'value': val} for val in list_default + congress['party_code'].unique().tolist()], value='Default'),
+                dcc.Dropdown(id='select-party', options=[{'label': val, 'value': val} for val in list_default + sorted(congress['party_code'].unique().tolist())], value='Default'),
                 html.Label('Age Range:'),
                 dcc.RangeSlider(id='age-slider', min=20, max=100, value=[20, 100], marks={i: str(i) for i in range(20, 101, 10)})
             ], style={'width': '25%', 'display': 'inline-block', 'verticalAlign': 'top'}),
