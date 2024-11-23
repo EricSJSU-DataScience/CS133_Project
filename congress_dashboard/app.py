@@ -24,6 +24,8 @@ context = ssl.create_default_context(cafile=certifi.where())
 with urllib.request.urlopen(url, context=context) as response:
     congress = pd.read_csv(response)
     #print(congress.head(3))  # make sure data was loaded properly
+    party_info = pd.read_csv("assets/party_codes.csv")
+    #print(party_info.head(3))
 
 # Initialize Wikipedia API with a user agent
 user_agent = "MyApp/1.0 (https://myappwebsite.example)"
@@ -80,6 +82,33 @@ choropleth = px.choropleth(data_c,
                            title='Average Age of Congress Members by State',
                            animation_frame='congress'
                            )
+choropleth.update_layout(height=750, width=1200) # adjust for Geomap in Introduction
+
+# graph from Analysis 2
+data2 = congress.groupby(['congress', 'party_code'])['age_years'].mean()
+data2 = data2.reset_index()
+data2.rename(columns={'age_years': 'average_age'}, inplace=True)
+
+# For plot21 # just find out seaborn does not work with dash
+plot21 = px.line(data2, x='congress', y='average_age', color='party_code',
+                 labels={'party_code': 'Party Code', 'average_age': 'Average Age'},
+                 title='bad try: Party-wise Average Age of Congress Members')
+
+party_code_list=[100, 200]
+# For plot22 # just find out seaborn does not work with dash
+plot22 = px.line(data2[data2['party_code'].isin(party_code_list)], x='congress', y='average_age',
+                 color='party_code',
+                 labels={'party_code': 'Party Code', 'average_age': 'Average Age'},
+                 title='Democrats=100 | Republicans=200\nRepublicans\' average age is lower in recent years')
+
+# HISTOGRAM: Age distribution
+histogram = px.histogram(
+    congress,
+    x='age_years',
+    nbins=50,  # Number of bins
+    title='Age Years Data is Normally Distributed',
+    labels={'age_years': 'Age (Years)'}
+)
 
 # STACKED BAR GRAPH
 
@@ -181,38 +210,78 @@ app.layout = html.Div([
     ], style={'width': '20%', 'display': 'inline-block',
               'verticalAlign': 'top'}),
     html.Div([  # Here are the html components in the right pane
-        html.Div([  # two plots on the top
-            dcc.Graph(figure=line_combined, style={'display': 'inline-block',
-                                                   'width':
-                                                       '49%'}),
-            dcc.Graph(figure=new_vs_returning, style={'display': 'inline-block',
-                                                      'width': '49%'})
-        ]),
-        html.Div([  # table, switches, and slider on the bottom
-            dcc.Graph(id="stacked-bar", figure=stacked_bar),
+        html.Div([## Introduction part
+            html.Div("Introduction to Dataset:", style={'fontSize': '30px', 'fontWeight': 'bold', 'marginTop': '5px', 'marginBottom': '5px'}),
             html.Div([
                 dcc.Graph(id="choropleth", figure=choropleth)
-            ], style={'padding': '20px'}),
+            ], style={'padding': '20px'})
         ]),
-        # try to add another section for table
-        html.Div([
-            html.H2('Filter options'),
+        html.Div([## Preview dataset part
+            html.Div("Preview Dataset:", style={'fontSize': '30px', 'fontWeight': 'bold', 'marginTop': '5px', 'marginBottom': '5px'}),
+            html.Div([
+                dcc.Graph(figure=histogram, style={'width': '70%','marginLeft': '0'})
+            ], style={'padding': '20px'}),
+            html.Div([
+                dcc.Graph(figure=plot21, style={'display': 'inline-block', 'width': '50%'}),
+                dcc.Graph(figure=plot22, style={'display': 'inline-block', 'width': '50%'})
+            ], style={'padding': '20px'})
+        ]),
+        html.Div([  # two plots on the top
+            html.Div("Detail Exploring:", style={'fontSize': '30px', 'fontWeight': 'bold', 'marginTop': '5px', 'marginBottom': '5px'}),
+            html.Div([
+                dcc.Graph(figure=line_combined, style={'display': 'inline-block', 'width':'49%'}),
+                dcc.Graph(figure=new_vs_returning, style={'display': 'inline-block', 'width': '49%'})
+            ])
+        ]),
+        html.Div([  # table, switches, and slider on the bottom
+            # better name for this section???
+            #html.Div("Detail Exploring:", style={'fontSize': '30px', 'fontWeight': 'bold', 'marginTop': '5px', 'marginBottom': '5px'}),
+            html.Div([
+                dcc.Graph(id="stacked-bar", figure=stacked_bar)
+            ])
+        ]),
+        ## Section for filter table and select record to show people's wikipedia
+        html.Div("Dataset explore on wikipedia:", style={'fontSize': '30px', 'fontWeight': 'bold', 'marginTop': '5px', 'marginBottom': '5px'}),
+        html.Div([  # First row: Congress and Chamber selection
             html.Div([
                 html.Label('Congress:'),
-                dcc.Dropdown(id='select-congress', options=[{'label': val, 'value': val} for val in list_default + sorted(congress['congress'].unique().tolist())], value='Default'),
+                dcc.Dropdown(id='select-congress', 
+                             options=[{'label': val, 'value': val} for val in list_default + sorted(congress['congress'].unique().tolist())], 
+                             value='Default')
+            ], style={'width': '25%', 'display': 'inline-block', 'paddingRight': '5%'}),
+            
+            html.Div([
                 html.Label('Chamber:'),
-                dcc.Dropdown(id='select-chamber', options=[{'label': val, 'value': val} for val in list_default + sorted(congress['chamber'].unique().tolist())], value='Default'),
-                html.Label('State:'),
-                dcc.Dropdown(id='select-state', options=[{'label': val, 'value': val} for val in list_default + sorted(congress['state_abbrev'].unique().tolist())], value='Default'),
-                html.Label('Party Code:'),
-                dcc.Dropdown(id='select-party', options=[{'label': val, 'value': val} for val in list_default + sorted(congress['party_code'].unique().tolist())], value='Default'),
-                html.Label('Age Range:'),
-                dcc.RangeSlider(id='age-slider', min=20, max=100, value=[20, 100], marks={i: str(i) for i in range(20, 101, 10)})
-            ], style={'width': '25%', 'display': 'inline-block', 'verticalAlign': 'top'}),
+                dcc.Dropdown(id='select-chamber', 
+                             options=[{'label': val, 'value': val} for val in list_default + sorted(congress['chamber'].unique().tolist())], 
+                             value='Default')
+            ], style={'width': '25%', 'display': 'inline-block'}),
         ]),
+        html.Div([  # Second row: State and Party selection
+            html.Div([
+                html.Label('State:'),
+                dcc.Dropdown(id='select-state', 
+                             options=[{'label': val, 'value': val} for val in list_default + sorted(congress['state_abbrev'].unique().tolist())], 
+                             value='Default')
+            ], style={'width': '25%', 'display': 'inline-block', 'paddingRight': '5%'}),
+            
+            html.Div([
+                html.Div(id='party-name'),
+                dcc.Dropdown(id='select-party', 
+                             options=[{'label': val, 'value': val} for val in list_default + sorted(congress['party_code'].unique().tolist())], 
+                             value='Default')
+            ], style={'width': '25%', 'display': 'inline-block'}),
+        ]),
+        html.Div([  # Third row: Slider
+            html.Label('Age Range:'),
+            dcc.RangeSlider(id='age-slider', 
+                            min=20, max=100, 
+                            value=[20, 100], 
+                            marks={i: str(i) for i in range(20, 101, 10)})
+        ], style={'width': '50%', 'marginTop': '20px'}),
         html.Div([
             html.Div([
-                    html.H2('Data After Filter'),
+                    html.H3('Data After Filter'),
                     dash_table.DataTable(id='filtered-table', 
                                          columns=[{"name": i, "id": i} for i in congress.columns],
                                          page_size=10,
@@ -222,8 +291,8 @@ app.layout = html.Div([
                     html.H3('Selected Bioname:'),
                     html.Div(id='selected-bioname'),
                     html.Button('Search Wikipedia', id='search-wikipedia', n_clicks=0)
-                ], style={'padding-top': '20px', 'backgroundColor': '#e0e0e0'}),
-                html.Div(id='wikipedia-summary-table', style={'padding-top': '20px', 'backgroundColor': '#e0e0e0'})
+                ], style={'padding-top': '20px', 'backgroundColor': '#a8efff'}),
+                html.Div(id='wikipedia-summary-table', style={'padding-top': '20px', 'backgroundColor': '#a8efff'})
         ], style={'padding-bottom': '200px'})
     ], style={'width': '75%', 'display': 'inline-block',
               'padding-left': '20px'})
@@ -251,6 +320,18 @@ def search_wikipedia(n_clicks, name):
     return f"### Wikipedia Summary:\n{summary}"
 
 #### try to add another section for table 
+# modify to use party_info dataframe, upon select the party code in the filter to show party name
+@app.callback(
+    Output('party-name', 'children'),
+    Input('select-party', 'value')
+)
+def update_party_name(select_party):
+    if select_party != 'Default':
+        party_name = party_info.loc[party_info['Party Code'] == int(select_party), 'Party Name'].values
+        if len(party_name) > 0:
+            return f'Party Code: {party_name[0]}'
+    return 'Party Code:'
+
 @app.callback(
     Output('filtered-table', 'data'),
     Input('select-congress', 'value'),
