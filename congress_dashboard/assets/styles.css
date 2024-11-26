@@ -1,0 +1,87 @@
+body {
+  overflow-x: auto;
+  background-color:#8CA8CD;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  margin: 0;
+  padding: 0;
+}
+
+body h1 {
+  font-size: 40px;
+  color: 'white';
+ }
+
+ body p {
+   font-size: 20px;
+   color: 'white';
+ }
+
+ * {
+    box-sizing: border-box;
+}
+
+.dropdown-labels {
+  margin-left: 20px;
+  color: white;
+  font-weight: bold;
+}
+
+.other-labels {
+  margin-left: 20px;
+  color: #323770;
+  font-weight: bold;
+}
+
+#container {
+  width: 100%;
+  display: flex; /* Horizontal alignment of children */
+  flex-direction: row; /* Default: children align in a row */
+  align-items: stretch; /* Stretch containers to equal height */
+  flex-wrap: nowrap; /* Prevent wrapping */
+  overflow-x: auto; /* Allow horizontal scrolling if needed */
+}
+
+#left-container {
+  width: 325px; /* Fixed width for left container */
+  background-color: #8CA8CD;
+  flex-shrink: 0; /* Prevent shrinking */
+}
+
+#right-container {
+  width: calc(100% - 325px); /* Remaining width, accounting for margins */
+  margin-right: 25px; /* Small gap between containers */
+  flex-grow: 1; /* Allow right container to grow if needed */
+}
+
+# stacked-bar {
+  width: 675px;
+  height: 430px;
+  margin-left: 35px;
+  float: left;
+}
+# choropleth {
+  width: 675px;
+  height: 430px;
+  margin-left: 800px;
+  margin-right: 20px;
+  autosize=True;
+}
+# line-combined {
+  margin-left: 800px;
+  margin-right: 20px;
+}
+# line-new-vs-returning {
+  margin-left: 800px;
+  margin-right: 20px;
+}
+
+.dropdown-label {
+  color: white; /* Set text color to white */
+  font-weight: bold; /* Make the text bold if needed */
+  margin-bottom: 5px; /* Add a small gap between the label and the dropdown */
+  display: block; /* Ensure the label stays above the dropdown */
+}
+
+.dropdown-container {
+  margin-bottom: 15px; /* Add space between dropdowns, if needed */
+}
