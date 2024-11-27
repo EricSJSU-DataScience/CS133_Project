@@ -86,15 +86,15 @@ choropleth.update_layout(height=750,
                          width=1100)  # adjust for Geomap in Introduction
 
 # graph from Analysis 2
-# data2 = congress.groupby(['congress', 'party_code'])['age_years'].mean()
-# data2 = data2.reset_index()
-# data2.rename(columns={'age_years': 'average_age'}, inplace=True)
-#
-# # For plot21 # just find out seaborn does not work with dash
-# plot21 = px.line(data2, x='congress', y='average_age', color='party_code',
-#                  labels={'party_code': 'Party Code',
-#                          'average_age': 'Average Age'},
-#                  title='bad try: Party-wise Average Age of Congress Members')
+data2 = congress.groupby(['congress', 'party_code'])['age_years'].mean()
+data2 = data2.reset_index()
+data2.rename(columns={'age_years': 'average_age'}, inplace=True)
+
+# For plot21 # just find out seaborn does not work with dash
+plot21 = px.line(data2, x='congress', y='average_age', color='party_code',
+                 labels={'party_code': 'Party Code',
+                         'average_age': 'Average Age'},
+                 title='bad try: Party-wise Average Age of Congress Members')
 #
 # party_code_list = [100, 200]
 # # For plot22 # just find out seaborn does not work with dash
@@ -148,7 +148,8 @@ stacked_bar = px.bar(merged_data,
                      color='generation',
                      title='Generational Makeup of Congress Over Time with Average Age',
                      labels={'percentage': 'Percentage of Congress Members',
-                             'congress': 'Congress Session'},
+                             'congress': 'Congress Session',
+                             'start_date': "Start Date"},
                      hover_name='generation',
                      hover_data={'congress': True, 'percentage': ':.2f',
                                  'generation': True, 'average_age': ':.2f'},
@@ -183,7 +184,7 @@ app.layout = html.Div([
                 ),
             ], style={'height': '550px'}),
             html.Div(style={'height': '300px'}),
-            html.Div(style={'height': '750px'}),
+            html.Div(style={'height': '775px'}),
             html.Div(style={'height': '1200px'}),
             html.Img(
                 src="assets/generations.png",
@@ -199,27 +200,15 @@ app.layout = html.Div([
         html.Div([  # Introduction part
             html.Div(style={'height': '25px'}),
             html.Img(src="assets/intro.png",
-                     style={'width': '100%', 'height': '550', 'margin': '0',
+                     style={'width': '1100px', 'height': '550px', 'margin': '0',
                             'padding': '0'}),
             html.Img(src="assets/questions.png",
-                     style={'width': '100%', 'height': '300', 'margin': '0',
+                     style={'width': '1100px', 'height': '300px', 'margin': '0',
                             'padding': '0'}),
             html.Div([
                 dcc.Graph(id="choropleth", figure=choropleth)
-            ])
+            ], style={'height': '750px', 'width': '1100px'})
         ]),
-        #
-        # html.Div([  # Preview dataset part
-        #     html.Div("Preview Dataset:",
-        #              style={'fontSize': '30px', 'fontWeight': 'bold', 'marginTop': '5px', 'marginBottom': '5px'}),
-        #     html.Div([
-        #         dcc.Graph(figure=histogram, style={'width': '70%', 'marginLeft': '0'})
-        #     ], style={'padding': '20px'}),
-        #     html.Div([
-        #         dcc.Graph(figure=plot21, style={'display': 'inline-block', 'width': '50%'}),
-        #         dcc.Graph(figure=plot22, style={'display': 'inline-block', 'width': '50%'})
-        #     ], style={'padding': '20px'})
-        # ]),
         html.Div([  # Average Age of Congress Members
             html.Div([
                 html.Div("Average Age of Congress Members Over Time:",
@@ -245,7 +234,7 @@ app.layout = html.Div([
                             )
                         ], style={'width': '45%', 'display': 'inline-block',
                                   'padding': '10px'}),
-                    ], style={'width': '45%', 'display': 'inline-block'}),
+                    ], style={'width': '50%', 'display': 'inline-block'}),
                     html.Div([
                         dcc.Graph(id='line-chart-average-age-chamber'),
                         html.Div([
@@ -262,7 +251,7 @@ app.layout = html.Div([
                             )
                         ], style={'width': '45%', 'display': 'inline-block',
                                   'padding': '10px'}),
-                    ], style={'width': '45%', 'display': 'inline-block'})
+                    ], style={'width': '50%', 'display': 'inline-block'})
                 ],style={'marginBottom': '30px'}),
 
                 html.Div([  # Average Age of New vs Returning Members
@@ -289,7 +278,7 @@ app.layout = html.Div([
                                 )
                             ], style={'width': '45%', 'display': 'inline-block',
                                       'padding': '10px'}),
-                        ], style={'width': '45%', 'display': 'inline-block'}),
+                        ], style={'width': '50%', 'display': 'inline-block'}),
                         html.Div([
                             dcc.Graph(id='line-chart-new-vs-returning-chamber'),
                             html.Div([
@@ -306,7 +295,7 @@ app.layout = html.Div([
                                 )
                             ], style={'width': '45%', 'display': 'inline-block',
                                       'padding': '10px'}),
-                        ], style={'width': '45%', 'display': 'inline-block'})
+                        ], style={'width': '50%', 'display': 'inline-block'})
                     ])
                 ])
             ])
@@ -399,7 +388,18 @@ app.layout = html.Div([
             html.Div(id='wikipedia-summary-table', style={'padding-top': '20px',
                                                           'backgroundColor':
                                                               '#e6e4e4'})
-        ])
+        ]),
+        html.Div(style={'height': '50px'}),
+        html.Div([  # Preview dataset part
+            html.Div("Bonus Plots:",
+                     style={'fontSize': '30px', 'fontWeight': 'bold', 'marginTop': '5px', 'marginBottom': '5px'}),
+            html.Div([
+                dcc.Graph(figure=histogram, style={'width': '70%', 'marginLeft': '0'})
+            ], style={'padding': '20px'}),
+            html.Div([
+                dcc.Graph(figure=plot21, style={'display': 'inline-block', 'width': '50%'})
+            ], style={'padding': '20px'})
+        ]),
     ], id='right-container')
 ], id='container')
 
